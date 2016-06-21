@@ -1,6 +1,7 @@
 package nl.xservices.plugins;
 
 import android.content.Intent;
+import android.util.Log;
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaActivity;
 import org.apache.cordova.CordovaPlugin;
@@ -17,10 +18,12 @@ import java.util.Locale;
 
 public class LaunchMyApp extends CordovaPlugin {
 
+  public static final String TAG = "LaunchMyApp";
   private static final String ACTION_CHECKINTENT = "checkIntent";
   private static final String ACTION_CLEARINTENT = "clearIntent";
   private static final String ACTION_GETLASTINTENT = "getLastIntent";
 
+  private Intent lastIntent = null;
   private String lastIntentString = null;
 
   /**
@@ -41,18 +44,34 @@ public class LaunchMyApp extends CordovaPlugin {
 
   @Override
   public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
+
+    /**
+    * There are can be two intents:
+    * 1. Which started Activity
+    * 2. Passed to onNewIntent method (more recent)
+    * check both
+    */
+    final Intent intent = ((CordovaActivity) this.webView.getContext()).getIntent();
+    String intentString = intent.getDataString();
+    String scheme = intent.getScheme();
+    if(this.lastIntent != null) {
+        intentString = this.lastIntent.getDataString();
+        scheme = this.lastIntent.getScheme();
+    }
+
     if (ACTION_CLEARINTENT.equalsIgnoreCase(action)) {
-      final Intent intent = ((CordovaActivity) this.webView.getContext()).getIntent();
+      //final Intent intent = ((CordovaActivity) this.webView.getContext()).getIntent();
       if (resetIntent){
         intent.setData(null);
       }
       return true;
     } else if (ACTION_CHECKINTENT.equalsIgnoreCase(action)) {
-      final Intent intent = ((CordovaActivity) this.webView.getContext()).getIntent();
-      final String intentString = intent.getDataString();
-      if (intentString != null && intent.getScheme() != null) {
+      //final Intent intent = ((CordovaActivity) this.webView.getContext()).getIntent();
+      //final String intentString = intent.getDataString();
+      //Log.d(TAG, "checkIntent: " + intentString);
+      if (intentString != null && scheme != null) {
         lastIntentString = intentString;
-        callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK, intent.getDataString()));
+        callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK, intentString));
       } else {
         callbackContext.error("App was not started via the launchmyapp URL scheme. Ignoring this errorcallback is the best approach.");
       }
@@ -72,7 +91,13 @@ public class LaunchMyApp extends CordovaPlugin {
 
   @Override
   public void onNewIntent(Intent intent) {
+
+    // Save intent localy because ((CordovaActivity) this.webView.getContext()).getIntent();
+    // does not return last intent but intent started Activity
+    this.lastIntent = intent;
+
     final String intentString = intent.getDataString();
+    //Log.d(TAG, "OnNewIntent: " + intentString);
     if (intentString != null && intent.getScheme() != null) {
       if (resetIntent){
         intent.setData(null);
