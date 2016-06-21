@@ -58,6 +58,7 @@
     <config-file target="res/xml/config.xml" parent="/*">
       <feature name="LaunchMyApp">
         <param name="android-package" value="nl.xservices.plugins.LaunchMyApp"/>
+        <param name="onload" value="true" />
       </feature>
     </config-file>
 
